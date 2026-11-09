@@ -1,0 +1,17 @@
+services:
+  transcription:
+    build: .
+    image: transcription-handy-like:local
+    restart: unless-stopped
+    mem_limit: ${TRANSCRIPTION_MEMOIRE:-4g}
+    ports:
+      - "${TRANSCRIPTION_HOTE:-127.0.0.1}:${TRANSCRIPTION_PORT:-8000}:8000"
+    environment:
+      TRANSCRIPTION_CLE_API: ${TRANSCRIPTION_CLE_API:-}
+      TRANSCRIPTION_FILS: ${TRANSCRIPTION_FILS:-0}
+      TRANSCRIPTION_LANGUE: ${TRANSCRIPTION_LANGUE:-}
+    volumes:
+      - ${TRANSCRIPTION_MODELES:-modeles}:/modeles
+
+volumes:
+  modeles:
