@@ -1,12 +1,28 @@
+<div align="center">
+
 # transcription-handy-like
+
+**Self-hosted speech-to-text on the CPU, behind an OpenAI-compatible API, with word timestamps.**
+
+[![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.162-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![OpenAI-compatible API](https://img.shields.io/badge/API-OpenAI--compatible-412991)](#use-the-api)
+[![Parakeet](https://img.shields.io/badge/model-Parakeet%20Ultra-76B900?logo=nvidia&logoColor=white)](THIRD_PARTY_NOTICES.md)
+[![CPU only](https://img.shields.io/badge/GPU-not%20needed-2EA043)](#quick-start-on-your-computer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**English** · [Français](README.fr.md)
+
+</div>
+
+---
 
 Self-hosted speech-to-text server with an OpenAI-compatible API (`POST /v1/audio/transcriptions`). It runs on the CPU with the **Parakeet Ultra** model (25 European languages) and returns word timestamps.
 
 It is the recommended transcription server for **[auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles)**, which turns videos into subtitle files. It also works alone with any OpenAI-compatible client, such as Open WebUI.
 
 It reproduces the processing chain of [Handy](https://github.com/cjpais/Handy), the desktop dictation app. Handy itself has no HTTP API, so it cannot serve this role.
-
-[Version française](README.fr.md)
 
 ## Quick start on your computer
 

@@ -1,12 +1,28 @@
+<div align="center">
+
 # transcription-handy-like
+
+**Transcription auto-hébergée sur le processeur, derrière une API compatible OpenAI, avec les mots horodatés.**
+
+[![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.162-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![OpenAI-compatible API](https://img.shields.io/badge/API-OpenAI--compatible-412991)](#utiliser-lapi)
+[![Parakeet](https://img.shields.io/badge/model-Parakeet%20Ultra-76B900?logo=nvidia&logoColor=white)](THIRD_PARTY_NOTICES.md)
+[![CPU only](https://img.shields.io/badge/GPU-not%20needed-2EA043)](#démarrage-rapide-sur-votre-ordinateur)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**Français** · [English](README.md)
+
+</div>
+
+---
 
 Serveur de transcription auto-hébergé, compatible avec l'API d'OpenAI (`POST /v1/audio/transcriptions`). Il tourne sur le processeur avec le modèle **Parakeet Ultra** (25 langues européennes) et renvoie les mots horodatés.
 
 C'est le serveur recommandé pour **[auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles)**, qui produit les sous-titres de vos vidéos. Il fonctionne aussi seul avec tout client compatible OpenAI, comme Open WebUI.
 
 Il reproduit la chaîne de [Handy](https://github.com/cjpais/Handy), l'application de dictée pour ordinateur. Handy n'a pas d'API HTTP et ne peut donc pas jouer ce rôle.
-
-[English version](README.md)
 
 ## Démarrage rapide sur votre ordinateur
 
