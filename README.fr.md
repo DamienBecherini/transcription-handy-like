@@ -71,6 +71,8 @@ curl http://127.0.0.1:8000/v1/audio/transcriptions -F file=@audio.mp3 -F respons
 
 Avec une clé API, ajoutez `-H "Authorization: Bearer <clé>"`.
 
+**Annuler.** L'API d'OpenAI n'a pas de requête d'annulation : un client qui ne veut plus de la réponse ferme sa connexion. Le serveur s'en aperçoit et s'arrête entre deux morceaux (environ 30 s de parole) ; la requête suivante n'attend donc pas derrière un travail que personne ne lira. La requête se termine par le statut 499.
+
 ## Sans Docker
 
 Python 3.12 et `ffmpeg` dans le `PATH` :

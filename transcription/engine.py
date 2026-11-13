@@ -14,6 +14,14 @@ log = logging.getLogger("transcription")
 RATE = 16000
 
 
+class Cancelled(Exception):
+    """The client left (closed its connection): the work stops between two chunks, the lock goes to the next one."""
+
+
+def _never() -> bool:
+    return False
+
+
 @dataclass
 class Result:
     text: str
@@ -68,9 +76,11 @@ class Engine:
         self.words = CustomWords(custom_words)
         log.info("models loaded in %.1f s (VAD frame %d)", time.perf_counter() - t, self.frame)
 
-    def transcribe(self, pcm: np.ndarray, language: str | None) -> Result:
+    def transcribe(self, pcm: np.ndarray, language: str | None, cancelled=_never) -> Result:
         times = {}
         with self.lock:
+            if cancelled():                    # gone while waiting for the lock
+                raise Cancelled()
             t = time.perf_counter()
             probs = self.vad_session.run(pcm).probs
             speech = vad.keep_speech(pcm, probs, self.frame)
@@ -87,7 +97,11 @@ class Engine:
                                            min_silence_ms=100, speech_pad_ms=30).segments
                 bounds = [0, *chunking.cuts(len(speech), chunking.pauses(seg, len(speech))), len(speech)]
                 chunks = [speech[a:b] for a, b in zip(bounds, bounds[1:])]
-            texts = [self.session.run(c).text.strip() for c in chunks]
+            texts = []
+            for c in chunks:
+                if cancelled():
+                    raise Cancelled()
+                texts.append(self.session.run(c).text.strip())
             times["asr"] = time.perf_counter() - t
             times["chunks"] = len(chunks)
 
@@ -96,11 +110,14 @@ class Engine:
         times["text"] = time.perf_counter() - t
         return res
 
-    def transcribe_timestamped(self, pcm: np.ndarray, language: str | None) -> TimestampedResult:
+    def transcribe_timestamped(self, pcm: np.ndarray, language: str | None, cancelled=_never) -> TimestampedResult:
         """Timestamped words on the original timeline (subtitles): see timestamps.py.
-        No custom words here (they rewrite groups of words), only filler words."""
+        No custom words here (they rewrite groups of words), only filler words. `cancelled()` is checked before each
+        chunk (about 30 s of speech): a client that leaves stops the work within seconds."""
         times = {}
         with self.lock:
+            if cancelled():
+                raise Cancelled()
             t = time.perf_counter()
             seg = self.vad_session.run(pcm, threshold=0.5, neg_threshold=0.35, min_speech_ms=250,
                                        min_silence_ms=100, speech_pad_ms=30).segments
@@ -109,6 +126,8 @@ class Engine:
             t = time.perf_counter()
             words, details, seen_language = [], [], None
             for a, b in chunks:
+                if cancelled():
+                    raise Cancelled()
                 r = self.session.run(pcm[a:b], timestamps="word")
                 offset = a / RATE
                 words.extend(timestamps.Word(w.text, offset + w.t0_ms / 1000, offset + w.t1_ms / 1000)

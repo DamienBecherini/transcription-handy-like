@@ -71,6 +71,8 @@ curl http://127.0.0.1:8000/v1/audio/transcriptions -F file=@audio.mp3 -F respons
 
 With an API key, add `-H "Authorization: Bearer <key>"`.
 
+**Cancel.** The OpenAI API has no cancel request: a client that no longer wants the answer closes its connection. The server notices it and stops between two chunks (about 30 s of speech), so the next request does not wait behind work nobody will read; the request ends with status 499.
+
 **Dictation (`json`, `text`, the default).** Handy's chain: voice detection keeps speech only, long recordings are cut in the middle of pauses, then custom words, filler words and stutters are cleaned up.
 
 **Subtitles (`verbose_json`).** Keeps the recording's timeline and returns OpenAI's format: `language`, `duration`, `text`, `segments`, `words` (`word`, `start`, `end`). The model does not report the language, so `language` is empty.

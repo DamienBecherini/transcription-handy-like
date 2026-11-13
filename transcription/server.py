@@ -16,19 +16,24 @@ Transcribed text is never written to the log, only durations.
 Browsers: a web page can send a multipart upload to any address without asking the server first, so any site
 open in a browser of the network could make this server work. Clients of this API are programs, which send no
 Origin header; requests to /v1/* that carry one are refused unless the origin is allowed.
+
+Cancellation: the OpenAI API has no cancel request; a client that no longer wants the answer closes its connection.
+The server notices it and stops between two chunks, so the next request does not wait behind work nobody will read.
 """
+import asyncio
 import hmac
 import logging
 import os
+import threading
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 from . import audio
-from .engine import Engine
+from .engine import RATE, Cancelled, Engine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("transcription")
@@ -52,13 +57,24 @@ async def lifespan(_app):
 app = FastAPI(title="transcription-handy-like", lifespan=lifespan)
 
 
-@app.middleware("http")
-async def refuse_foreign_pages(request: Request, call_next):
-    origin = request.headers.get("origin")
-    if request.url.path.startswith("/v1/") and origin is not None and origin.rstrip("/") not in ALLOWED_ORIGINS:
-        return JSONResponse({"detail": "requests from web pages are refused (TRANSCRIPTION_ALLOWED_ORIGINS)"},
-                            status_code=403)
-    return await call_next(request)
+class RefuseForeignPages:
+    """Plain ASGI middleware (not @app.middleware, whose wrapper hides the disconnection of the client from
+    request.is_disconnected(), on which cancellation depends)."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["path"].startswith("/v1/"):
+            origin = dict(scope.get("headers") or []).get(b"origin")
+            if origin is not None and origin.decode("latin-1").rstrip("/") not in ALLOWED_ORIGINS:
+                refusal = JSONResponse({"detail": "requests from web pages are refused (TRANSCRIPTION_ALLOWED_ORIGINS)"},
+                                       status_code=403)
+                return await refusal(scope, receive, send)
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(RefuseForeignPages)
 
 
 def check_key(authorization: str | None):
@@ -77,8 +93,31 @@ async def list_models(authorization: str | None = Header(None)):
     return {"object": "list", "data": [{"id": MODEL_NAME, "object": "model", "owned_by": "local"}]}
 
 
+DISCONNECT_CHECK_S = 0.5
+CLIENT_GONE = 499                      # status of a request whose client left (nobody reads it)
+
+
+async def _watch_client(request: Request, gone: threading.Event):
+    while not gone.is_set():
+        if await request.is_disconnected():
+            gone.set()
+            return
+        await asyncio.sleep(DISCONNECT_CHECK_S)
+
+
+async def run_watched(request: Request, work, *args):
+    """Runs `work(*args, cancelled)` in a thread while watching the connection: `cancelled()` becomes true when the
+    client leaves, and the engine then raises Cancelled between two chunks."""
+    gone = threading.Event()
+    watcher = asyncio.create_task(_watch_client(request, gone))
+    try:
+        return await run_in_threadpool(work, *args, gone.is_set)
+    finally:
+        watcher.cancel()
+
+
 @app.post("/v1/audio/transcriptions")
-async def transcriptions(file: UploadFile = File(...), model: str = Form(MODEL_NAME),
+async def transcriptions(request: Request, file: UploadFile = File(...), model: str = Form(MODEL_NAME),
                          language: str | None = Form(None), prompt: str | None = Form(None),
                          response_format: str = Form("json"), temperature: float | None = Form(None),
                          authorization: str | None = Header(None)):
@@ -92,9 +131,17 @@ async def transcriptions(file: UploadFile = File(...), model: str = Form(MODEL_N
     except audio.InvalidAudio as e:
         raise HTTPException(400, f"unreadable audio: {e}") from e
     t_decode = time.perf_counter() - t0
+    try:
+        return await _transcribe(request, pcm, language, response_format, t0, t_decode)
+    except Cancelled:
+        log.info("cancelled: the client left after %.1f s (audio %.1f s)", time.perf_counter() - t0, len(pcm) / RATE)
+        return Response(status_code=CLIENT_GONE)
+
+
+async def _transcribe(request: Request, pcm, language: str | None, response_format: str, t0: float, t_decode: float):
     lang = language or LANGUAGE
     if response_format == "verbose_json":
-        h = await run_in_threadpool(engine.transcribe_timestamped, pcm, language or None)
+        h = await run_watched(request, engine.transcribe_timestamped, pcm, language or None)
         total = time.perf_counter() - t0
         log.info("timestamped: audio %.1f s, %s chunk(s), %d words | decode %.2f s, vad %.2f s, asr %.2f s, total %.2f s",
                  h.audio_duration, h.times.get("chunks", 0), len(h.words), t_decode, h.times.get("vad", 0),
@@ -103,7 +150,7 @@ async def transcriptions(file: UploadFile = File(...), model: str = Form(MODEL_N
                 "segments": [{"id": i, "start": round(a, 3), "end": round(b, 3), "text": t}
                              for i, (a, b, t) in enumerate(h.chunks)],
                 "words": [{"word": w.text, "start": w.start, "end": w.end} for w in h.words]}
-    r = await run_in_threadpool(engine.transcribe, pcm, lang)
+    r = await run_watched(request, engine.transcribe, pcm, lang)
     total = time.perf_counter() - t0
     log.info("audio %.1f s, speech %.1f s, %s chunk(s) | decode %.2f s, vad %.2f s, asr %.2f s, total %.2f s",
              r.audio_duration, r.speech_duration, r.times.get("chunks", 0), t_decode,
