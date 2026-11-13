@@ -10,13 +10,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY transcription/ transcription/
 
-# Modèles téléchargés au premier démarrage dans ce volume (cache Hugging Face), vérifiés par sha256.
-ENV HF_HOME=/modeles PYTHONUNBUFFERED=1
-RUN useradd -u 1000 -m transcription && mkdir /modeles && chown transcription /modeles
+# Models downloaded on first start into this volume (Hugging Face cache), checked by sha256.
+ENV HF_HOME=/models PYTHONUNBUFFERED=1
+RUN useradd -u 1000 -m transcription && mkdir /models && chown transcription /models
 USER transcription
-VOLUME /modeles
+VOLUME /models
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=120s \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
-CMD ["uvicorn", "transcription.serveur:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "transcription.server:app", "--host", "0.0.0.0", "--port", "8000"]

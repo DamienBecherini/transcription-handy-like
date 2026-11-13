@@ -40,7 +40,7 @@ Le premier démarrage télécharge environ 1 Go de modèles. Pour vérifier que 
 curl http://127.0.0.1:8000/health
 ```
 
-La réponse est `{"etat":"chargement"}` pendant le chargement, puis `{"etat":"pret"}`. Le serveur n'accepte que les connexions de votre ordinateur et ne demande pas de clé.
+La réponse est `{"state":"loading"}` pendant le chargement, puis `{"state":"ready"}`. Le serveur n'accepte que les connexions de votre ordinateur et ne demande pas de clé.
 
 **Ensuite :** [installez auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles/blob/main/README.fr.md#démarrage-rapide). Il cherche ce serveur sur `http://127.0.0.1:8000` par défaut.
 
@@ -78,28 +78,28 @@ Python 3.12 et `ffmpeg` dans le `PATH` :
 ```
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt       # Windows : .venv/Scripts/pip
-.venv/bin/python -m uvicorn transcription.serveur:app --port 8000
+.venv/bin/python -m uvicorn transcription.server:app --port 8000
 ```
 
 Sous Windows, le contrôle intelligent des applications peut bloquer les bibliothèques natives non signées (`WinError 4551`). Utilisez alors Docker.
 
-Variables : `TRANSCRIPTION_CLE_API`, `TRANSCRIPTION_MOTS`, `TRANSCRIPTION_LANGUE`, `TRANSCRIPTION_FILS` (voir `transcription/serveur.py`). Le texte transcrit n'est jamais journalisé.
+Variables : `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_CUSTOM_WORDS`, `TRANSCRIPTION_LANGUAGE`, `TRANSCRIPTION_THREADS` (voir `transcription/server.py`). Le texte transcrit n'est jamais journalisé.
 
 ## Chaîne (comme Handy)
 
 1. Décodage par ffmpeg (WebM/Opus du navigateur, WAV, MP3, M4A…) en PCM 16 kHz mono (`audio.py`).
 2. Détection de voix Silero VAD v6.2 : seuil 0,3, pré-roll 450 ms, démarrage 2 trames, maintien 450 ms ; seule la parole est gardée, silences du milieu compris ; aucune parole → texte vide ; moins de 1 s → complété jusqu'à 1,25 s (`vad.py`).
-3. Au-delà de 40 s : découpage au milieu des pauses, morceaux de 5 à 40 s, 30 s visés (`decoupage.py`).
+3. Au-delà de 40 s : découpage au milieu des pauses, morceaux de 5 à 40 s, 30 s visés (`chunking.py`).
 4. Parakeet Ultra Q8_0 par transcribe.cpp, langue détectée par le modèle : le paramètre `language` n'a pas d'effet sur Ultra (documentation de transcribe.cpp) ; il sert seulement au point 5.
-5. Nettoyage du texte (`texte.py`) : mots personnalisés (Levenshtein + Soundex, seuil 0,18), mots de remplissage (universels, plus « euh » si la langue est le français), mot répété 3 fois ou plus, espaces.
+5. Nettoyage du texte (`text.py`) : mots personnalisés (Levenshtein + Soundex, seuil 0,18), mots de remplissage (universels, plus « euh » si la langue est le français), mot répété 3 fois ou plus, espaces.
 
-Modèles épinglés (dépôt, révision, sha256) comme dans le catalogue de Handy (`modeles.py`), téléchargés au premier démarrage puis vérifiés.
+Modèles épinglés (dépôt, révision, sha256) comme dans le catalogue de Handy (`models.py`), téléchargés au premier démarrage puis vérifiés.
 
 ## Mode sous-titres : mots horodatés (`response_format=verbose_json`)
 
 Pour les sous-titres (projet `auto-generate-subtitles`), la chaîne de dictée ne convient pas : elle retire les
 silences et recolle la parole, les temps sont perdus. En `verbose_json`, le serveur garde la ligne de temps de
-l'enregistrement (`horodatage.py`) : segments de parole de Silero (seuil 0,5, pauses de 100 ms) regroupés en
+l'enregistrement (`timestamps.py`) : segments de parole de Silero (seuil 0,5, pauses de 100 ms) regroupés en
 morceaux de 40 s au plus, élargis de 0,2 s dans le silence voisin ; chaque morceau transcrit avec
 `timestamps="word"` (Parakeet Ultra donne des horodatages par jeton), décalage du morceau ajouté. Réponse au
 format d'OpenAI : `language`, `duration`, `text`, `segments` (un par morceau), `words` (`word`, `start`, `end`).
@@ -110,10 +110,10 @@ en 1,3 s, mots datés à 40 ms près.
 
 ## Mots personnalisés
 
-Fichier `TRANSCRIPTION_MOTS`, un mot par ligne, relu à chaud. La méthode de Handy remplace aussi des mots français courants (« projet » → Parakeet, « git » → Gitea) : n'ajouter un mot qu'après une erreur constatée, puis vérifier la liste sur un corpus en français :
+Fichier `TRANSCRIPTION_CUSTOM_WORDS`, un mot par ligne, relu à chaud. La méthode de Handy remplace aussi des mots français courants (« projet » → Parakeet, « git » → Gitea) : n'ajouter un mot qu'après une erreur constatée, puis vérifier la liste sur un corpus en français :
 
 ```
-.venv/bin/python -m transcription.verifier_mots <mots.txt> <dossier de notes en français>
+.venv/bin/python -m transcription.check_words <mots.txt> <dossier de notes en français>
 ```
 
 ## Mesures (03/11/2026, PC Core Ultra 9 285H, processeur seul)
@@ -131,7 +131,7 @@ L'essentiel du temps est dans transcribe.cpp : une réécriture en Rust ne gagne
 
 Sur un i5-4570 (4 cœurs) avec Q8_0 : 2,4 s → 0,32 s ; 21,6 s → 2,9 s ; 54,7 s → 6,9 s.
 
-### Quantifications (03/11/2026, i5-4570, `python -m transcription.banc`, médiane de 3)
+### Quantifications (03/11/2026, i5-4570, `python -m transcription.bench`, médiane de 3)
 
 | Version | Taille | 2,4 s | 21,6 s | 54,7 s | Texte (7 enregistrements) |
 |---|---|---|---|---|---|

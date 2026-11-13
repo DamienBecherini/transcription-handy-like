@@ -40,7 +40,7 @@ The first start downloads about 1 GB of models. Check that it is ready:
 curl http://127.0.0.1:8000/health
 ```
 
-The answer is `{"etat":"chargement"}` while it loads, then `{"etat":"pret"}`. The server only accepts connections from your own computer, and no API key is needed.
+The answer is `{"state":"loading"}` while it loads, then `{"state":"ready"}`. The server only accepts connections from your own computer, and no API key is needed.
 
 **Next:** [install auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles#quick-start). It looks for this server at `http://127.0.0.1:8000` by default.
 
@@ -81,14 +81,14 @@ Set these in `.env`, or as environment variables without Docker:
 
 | Variable | Meaning |
 | --- | --- |
-| `TRANSCRIPTION_CLE_API` | if set, required as a Bearer token on `/v1/*` |
-| `TRANSCRIPTION_LANGUE` | language assumed when a request gives none (used to remove French fillers) |
-| `TRANSCRIPTION_FILS` | CPU threads, 0 = automatic |
-| `TRANSCRIPTION_MOTS` | file of custom words, one per line, reloaded when it changes (without Docker) |
+| `TRANSCRIPTION_API_KEY` | if set, required as a Bearer token on `/v1/*` |
+| `TRANSCRIPTION_LANGUAGE` | language assumed when a request gives none (used to remove French fillers) |
+| `TRANSCRIPTION_THREADS` | CPU threads, 0 = automatic |
+| `TRANSCRIPTION_CUSTOM_WORDS` | file of custom words, one per line, reloaded when it changes (without Docker) |
 
-Docker settings: `TRANSCRIPTION_HOTE`, `TRANSCRIPTION_PORT`, `TRANSCRIPTION_MEMOIRE`, `TRANSCRIPTION_MODELES`. Transcribed text is never logged.
+Docker settings: `TRANSCRIPTION_HOST`, `TRANSCRIPTION_PORT`, `TRANSCRIPTION_MEMORY`, `TRANSCRIPTION_MODELS`. Transcribed text is never logged.
 
-Handy's custom-word matching can also replace common words, so add a word only after a real error, then check the list against a corpus with `python -m transcription.verifier_mots <words.txt> <folder of notes>`.
+Handy's custom-word matching can also replace common words, so add a word only after a real error, then check the list against a corpus with `python -m transcription.check_words <words.txt> <folder of notes>`.
 
 ## Without Docker
 
@@ -97,14 +97,14 @@ Python 3.12 and `ffmpeg` in the `PATH`:
 ```
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt       # Windows: .venv/Scripts/python -m pip
-.venv/bin/python -m uvicorn transcription.serveur:app --port 8000
+.venv/bin/python -m uvicorn transcription.server:app --port 8000
 ```
 
 On Windows, Smart App Control can block the unsigned native libraries with `WinError 4551`. Use Docker in that case.
 
 ## Performance
 
-Measured on a Core Ultra 9 285H, CPU only, Q8_0 quantization: 2.4 s of audio in 0.17 s, 21.6 s in 1.19 s, 54.7 s in 2.77 s. On an i5-4570: 0.32 s, 2.9 s and 6.9 s. Lower quantizations gain 10 to 12% on long recordings at the cost of text errors, so Q8_0 stays the default (`python -m transcription.banc` compares them).
+Measured on a Core Ultra 9 285H, CPU only, Q8_0 quantization: 2.4 s of audio in 0.17 s, 21.6 s in 1.19 s, 54.7 s in 2.77 s. On an i5-4570: 0.32 s, 2.9 s and 6.9 s. Lower quantizations gain 10 to 12% on long recordings at the cost of text errors, so Q8_0 stays the default (`python -m transcription.bench` compares them).
 
 ## Tests
 

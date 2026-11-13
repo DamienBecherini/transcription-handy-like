@@ -3,15 +3,15 @@ services:
     build: .
     image: transcription-handy-like:local
     restart: unless-stopped
-    mem_limit: ${TRANSCRIPTION_MEMOIRE:-4g}
+    mem_limit: ${TRANSCRIPTION_MEMORY:-4g}
     ports:
-      - "${TRANSCRIPTION_HOTE:-127.0.0.1}:${TRANSCRIPTION_PORT:-8000}:8000"
+      - "${TRANSCRIPTION_HOST:-127.0.0.1}:${TRANSCRIPTION_PORT:-8000}:8000"
     environment:
-      TRANSCRIPTION_CLE_API: ${TRANSCRIPTION_CLE_API:-}
-      TRANSCRIPTION_FILS: ${TRANSCRIPTION_FILS:-0}
-      TRANSCRIPTION_LANGUE: ${TRANSCRIPTION_LANGUE:-}
+      TRANSCRIPTION_API_KEY: ${TRANSCRIPTION_API_KEY:-}
+      TRANSCRIPTION_THREADS: ${TRANSCRIPTION_THREADS:-0}
+      TRANSCRIPTION_LANGUAGE: ${TRANSCRIPTION_LANGUAGE:-}
     volumes:
-      - ${TRANSCRIPTION_MODELES:-modeles}:/modeles
+      - ${TRANSCRIPTION_MODELS:-models}:/models
 
 volumes:
-  modeles:
+  models:

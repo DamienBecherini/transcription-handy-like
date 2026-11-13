@@ -1,1 +1,1 @@
-"""Serveur de transcription local reproduisant la chaîne de Handy (Parakeet Ultra via transcribe.cpp)."""
+"""Local transcription server reproducing Handy's chain (Parakeet Ultra through transcribe.cpp)."""

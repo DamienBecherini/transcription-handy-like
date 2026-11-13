@@ -1,37 +1,37 @@
-"""Décodage de l'audio reçu (WebM/Opus du navigateur, WAV, MP3, M4A…) en PCM float32 16 kHz mono, par ffmpeg."""
+"""Decodes the received audio (browser WebM/Opus, WAV, MP3, M4A…) to 16 kHz mono float32 PCM with ffmpeg."""
 import os
 import subprocess
 import tempfile
 
 import numpy as np
 
-TAUX = 16000
+RATE = 16000
 
 
-class AudioInvalide(ValueError):
+class InvalidAudio(ValueError):
     pass
 
 
-def decoder(donnees: bytes, delai_s: float | None = None) -> np.ndarray:
-    """Le fichier passe par le disque et non par un tube : ffmpeg doit pouvoir y revenir en arrière
-    (MP4/MOV dont l'index « moov » est à la fin, sinon il ne sort rien sans se plaindre)."""
-    if delai_s is None:
-        delai_s = 60 + len(donnees) / 1_000_000   # une seconde de plus par Mo (une heure d'audio ≈ 60 Mo)
+def decode(data: bytes, timeout_s: float | None = None) -> np.ndarray:
+    """The file goes through the disk rather than a pipe: ffmpeg must be able to seek back
+    (MP4/MOV with the "moov" index at the end, otherwise it outputs nothing without complaining)."""
+    if timeout_s is None:
+        timeout_s = 60 + len(data) / 1_000_000   # one more second per MB (an hour of audio ≈ 60 MB)
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as f:
-        f.write(donnees)
-        chemin = f.name
+        f.write(data)
+        path = f.name
     try:
         r = subprocess.run(
-            ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", chemin,
-             "-vn", "-f", "f32le", "-acodec", "pcm_f32le", "-ac", "1", "-ar", str(TAUX), "pipe:1"],
-            capture_output=True, timeout=delai_s, check=False)
+            ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", path,
+             "-vn", "-f", "f32le", "-acodec", "pcm_f32le", "-ac", "1", "-ar", str(RATE), "pipe:1"],
+            capture_output=True, timeout=timeout_s, check=False)
     except subprocess.TimeoutExpired as e:
-        raise AudioInvalide("décodage trop long") from e
+        raise InvalidAudio("decoding took too long") from e
     finally:
-        os.unlink(chemin)
+        os.unlink(path)
     if r.returncode != 0:
-        raise AudioInvalide(r.stderr.decode(errors="replace").strip()[-300:] or "ffmpeg a échoué")
+        raise InvalidAudio(r.stderr.decode(errors="replace").strip()[-300:] or "ffmpeg failed")
     pcm = np.frombuffer(r.stdout, dtype=np.float32).copy()
     if len(pcm) == 0:
-        raise AudioInvalide("aucune piste audio lisible")
+        raise InvalidAudio("no readable audio track")
     return pcm
