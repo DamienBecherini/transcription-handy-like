@@ -20,7 +20,7 @@
 
 Serveur de transcription auto-hébergé, compatible avec l'API d'OpenAI (`POST /v1/audio/transcriptions`). Il tourne sur le processeur avec le modèle **Parakeet Ultra** (25 langues européennes) et renvoie les mots horodatés.
 
-C'est le serveur recommandé pour **[auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles)**, qui produit les sous-titres de vos vidéos. Il fonctionne aussi seul avec tout client compatible OpenAI, comme Open WebUI.
+C'est le serveur recommandé pour **[dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub)**, qui produit les sous-titres de vos vidéos. Il fonctionne aussi seul avec tout client compatible OpenAI, comme Open WebUI.
 
 Il reproduit la chaîne de [Handy](https://github.com/cjpais/Handy), l'application de dictée pour ordinateur. Handy n'a pas d'API HTTP et ne peut donc pas jouer ce rôle.
 
@@ -42,7 +42,7 @@ curl http://127.0.0.1:8000/health
 
 La réponse est `{"state":"loading"}` pendant le chargement, puis `{"state":"ready"}`. Le serveur n'accepte que les connexions de votre ordinateur et ne demande pas de clé.
 
-**Ensuite :** [installez auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles/blob/main/README.fr.md#démarrage-rapide). Il cherche ce serveur sur `http://127.0.0.1:8000` par défaut.
+**Ensuite :** [installez dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub/blob/main/README.fr.md#démarrage-rapide). Il cherche ce serveur sur `http://127.0.0.1:8000` par défaut.
 
 ## Installation sur un serveur ou un VPS
 
@@ -99,7 +99,7 @@ Modèles épinglés (dépôt, révision, sha256) comme dans le catalogue de Hand
 
 ## Mode sous-titres : mots horodatés (`response_format=verbose_json`)
 
-Pour les sous-titres (projet `auto-generate-subtitles`), la chaîne de dictée ne convient pas : elle retire les
+Pour les sous-titres (projet `dl-sub-dub`), la chaîne de dictée ne convient pas : elle retire les
 silences et recolle la parole, les temps sont perdus. En `verbose_json`, le serveur garde la ligne de temps de
 l'enregistrement (`timestamps.py`) : segments de parole de Silero (seuil 0,5, pauses de 100 ms) regroupés en
 morceaux de 40 s au plus, élargis de 0,2 s dans le silence voisin ; chaque morceau transcrit avec

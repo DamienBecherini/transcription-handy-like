@@ -20,7 +20,7 @@
 
 Self-hosted speech-to-text server with an OpenAI-compatible API (`POST /v1/audio/transcriptions`). It runs on the CPU with the **Parakeet Ultra** model (25 European languages) and returns word timestamps.
 
-It is the recommended transcription server for **[auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles)**, which turns videos into subtitle files. It also works alone with any OpenAI-compatible client, such as Open WebUI.
+It is the recommended transcription server for **[dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub)**, which turns videos into subtitle files. It also works alone with any OpenAI-compatible client, such as Open WebUI.
 
 It reproduces the processing chain of [Handy](https://github.com/cjpais/Handy), the desktop dictation app. Handy itself has no HTTP API, so it cannot serve this role.
 
@@ -42,7 +42,7 @@ curl http://127.0.0.1:8000/health
 
 The answer is `{"state":"loading"}` while it loads, then `{"state":"ready"}`. The server only accepts connections from your own computer, and no API key is needed.
 
-**Next:** [install auto-generate-subtitles](https://github.com/DamienBecherini/auto-generate-subtitles#quick-start). It looks for this server at `http://127.0.0.1:8000` by default.
+**Next:** [install dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub#quick-start). It looks for this server at `http://127.0.0.1:8000` by default.
 
 ## Install on a server or VPS
 

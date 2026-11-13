@@ -176,4 +176,4 @@ case "$TRANSCRIPTION_HOST" in
   *) echo "Reachable from other machines: put HTTPS in front of it and restrict the port with your firewall." ;;
 esac
 echo "Stop: docker compose down    Logs: docker compose logs -f transcription"
-echo "Subtitles: https://github.com/DamienBecherini/auto-generate-subtitles"
+echo "Subtitles: https://github.com/DamienBecherini/dl-sub-dub"
