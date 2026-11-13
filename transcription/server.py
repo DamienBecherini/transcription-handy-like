@@ -7,19 +7,25 @@ Two modes depending on response_format:
 
 Environment variables:
   TRANSCRIPTION_API_KEY        if set, required as "Authorization: Bearer …" on /v1/*
+  TRANSCRIPTION_ALLOWED_ORIGINS  web origins allowed to call /v1/* from a browser, comma-separated (none by default)
   TRANSCRIPTION_CUSTOM_WORDS   file of custom words (one per line), reloaded when it changes
   TRANSCRIPTION_LANGUAGE       language assumed when the request gives none (used to remove "euh")
   TRANSCRIPTION_THREADS        compute threads for Parakeet (0 = automatic)
 Transcribed text is never written to the log, only durations.
+
+Browsers: a web page can send a multipart upload to any address without asking the server first, so any site
+open in a browser of the network could make this server work. Clients of this API are programs, which send no
+Origin header; requests to /v1/* that carry one are refused unless the origin is allowed.
 """
+import hmac
 import logging
 import os
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from . import audio
 from .engine import Engine
@@ -30,6 +36,8 @@ log = logging.getLogger("transcription")
 MODEL_NAME = "parakeet-ultra"
 API_KEY = os.environ.get("TRANSCRIPTION_API_KEY", "")
 LANGUAGE = os.environ.get("TRANSCRIPTION_LANGUAGE", "") or None
+ALLOWED_ORIGINS = {o.strip().rstrip("/") for o in os.environ.get("TRANSCRIPTION_ALLOWED_ORIGINS", "").split(",")
+                   if o.strip()}
 engine: Engine | None = None
 
 
@@ -44,8 +52,17 @@ async def lifespan(_app):
 app = FastAPI(title="transcription-handy-like", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def refuse_foreign_pages(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if request.url.path.startswith("/v1/") and origin is not None and origin.rstrip("/") not in ALLOWED_ORIGINS:
+        return JSONResponse({"detail": "requests from web pages are refused (TRANSCRIPTION_ALLOWED_ORIGINS)"},
+                            status_code=403)
+    return await call_next(request)
+
+
 def check_key(authorization: str | None):
-    if API_KEY and authorization != f"Bearer {API_KEY}":
+    if API_KEY and not hmac.compare_digest((authorization or "").encode(), f"Bearer {API_KEY}".encode()):
         raise HTTPException(401, "invalid API key")
 
 

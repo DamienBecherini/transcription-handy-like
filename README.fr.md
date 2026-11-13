@@ -83,7 +83,7 @@ python -m venv .venv
 
 Sous Windows, le contrôle intelligent des applications peut bloquer les bibliothèques natives non signées (`WinError 4551`). Utilisez alors Docker.
 
-Variables : `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_CUSTOM_WORDS`, `TRANSCRIPTION_LANGUAGE`, `TRANSCRIPTION_THREADS` (voir `transcription/server.py`). Le texte transcrit n'est jamais journalisé.
+Variables : `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_ALLOWED_ORIGINS`, `TRANSCRIPTION_CUSTOM_WORDS`, `TRANSCRIPTION_LANGUAGE`, `TRANSCRIPTION_THREADS` (voir `transcription/server.py`). Par défaut, les requêtes venues d'une page web (en-tête `Origin`) sont refusées sur `/v1/*`. Le texte transcrit n'est jamais journalisé.
 
 ## Chaîne (comme Handy)
 

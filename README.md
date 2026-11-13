@@ -82,6 +82,7 @@ Set these in `.env`, or as environment variables without Docker:
 | Variable | Meaning |
 | --- | --- |
 | `TRANSCRIPTION_API_KEY` | if set, required as a Bearer token on `/v1/*` |
+| `TRANSCRIPTION_ALLOWED_ORIGINS` | web origins allowed to call `/v1/*` from a browser, comma-separated; by default, requests from web pages (with an `Origin` header) are refused |
 | `TRANSCRIPTION_LANGUAGE` | language assumed when a request gives none (used to remove French fillers) |
 | `TRANSCRIPTION_THREADS` | CPU threads, 0 = automatic |
 | `TRANSCRIPTION_CUSTOM_WORDS` | file of custom words, one per line, reloaded when it changes (without Docker) |
